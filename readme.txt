@@ -45,9 +45,21 @@ To batch reconstruct multiple data sets please follow these steps:
 
 How to use auto:
 
-auto runs on the data analysis machine by monitoring a folder and executing for any new h5 file a try reconstruction (rec new_file.h5  --srs 30 --type try)
+auto runs on the data analysis machine by monitoring a folder and executing for any newly transferred h5 file a try reconstruction (rec new_file.h5  --srs 30 --type try)
+
 To run it:
 
     auto /local/data/
+
+
+the program will start monitoring /local/data recursively and at each new h5 file send a message like:
+
+    waiting for new file in /local/data/ to process
+    executing script: rec --type try --srs 30 /local/data/2019-06/004_test.h5
+    Reconstructing a single file
+    (1500, 2048, 2448)
+    Raw data:  /local/data/2019-06/004_test.h5
+    Center:  1224.0
+    Reconstructions:  /local/data/2019-06/try_rec/004_test/recon_
 
 Dependency: pyinotify
