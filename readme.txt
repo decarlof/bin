@@ -52,15 +52,14 @@ To batch reconstruct multiple data sets please follow these steps:
     rec all_hdf/ --type full
 
 
-How to use auto:
+How to use auto_rec:
 
-auto runs on the data analysis machine by monitoring a folder and executing for any newly transferred h5 file a try reconstruction (rec new_file.h5  --srs 30 --type try)
+auto_rec runs on the data analysis machine by monitoring a folder and executing for any newly transferred h5 file a try reconstruction (rec new_file.h5  --srs 30 --type try)
 
 
 Start monitoring:
 
-    auto /local/data/
-
+    auto_rec /local/data/
 
 the program will start monitoring /local/data recursively and at each new h5 file send a message like:
 
