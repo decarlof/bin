@@ -1,3 +1,12 @@
+To install it:
+
+    clone this repository in a folder that is in the PATH of your bash for example (export PATH="/local/usr32idc/bin:$PATH") then
+
+    git clone https://github.com/decarlof/bin_utils.git /local/usr32idc/bin
+
+Dependency: pyinotify
+
+
 How to use rec and find_center:
 
 To try different position of the rotation axis starting at 1290 +/- 5 pixels:
@@ -47,7 +56,8 @@ How to use auto:
 
 auto runs on the data analysis machine by monitoring a folder and executing for any newly transferred h5 file a try reconstruction (rec new_file.h5  --srs 30 --type try)
 
-To run it:
+
+Start monitoring:
 
     auto /local/data/
 
@@ -62,4 +72,4 @@ the program will start monitoring /local/data recursively and at each new h5 fil
     Center:  1224.0
     Reconstructions:  /local/data/2019-06/try_rec/004_test/recon_
 
-Dependency: pyinotify
+
