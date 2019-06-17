@@ -1,2 +1,2 @@
 DIR=$1
-react.py $DIR -p '*.h5' 'rec --type try --srs 30 $f'
+react.py $DIR -p '*.h5' 'recon --type try --srs 30 $f'
