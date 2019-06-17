@@ -211,8 +211,7 @@ def rec_full(variableDict):
             fname = os.path.dirname(variableDict['fname']) + os.sep + os.path.splitext(os.path.basename(variableDict['fname']))[0]+ '_full_rec/' + 'recon'
         else:
             fname = '.' + os.sep + os.path.splitext(os.path.basename(variableDict['fname']))[0]+ '_full_rec/' + 'recon'
-       # # Write data as stack of TIFs.
-       #  fname = os.path.dirname(variableDict['fname']) + os.sep + os.path.splitext(os.path.basename(variableDict['fname']))[0]+ '_full_rec/' + 'recon'
+
         log_lib.info("  *** reconstructions: %s" % fname)
         dxchange.write_tiff_stack(rec, fname=fname, start=strt)
         strt += sino[1] - sino[0]
@@ -231,9 +230,7 @@ def rec_phase(variableDict):
     data_shape = get_dx_dims(variableDict['fname'], 'data')
     ssino = int(data_shape[1] * variableDict['nsino'])
 
-    # Select sinogram range to reconstruct
-    sino = None
-        
+    # Select sinogram range to reconstruct       
     sino_start = ssino - 32
     sino_end = ssino + 32
     chunks = 1          # number of sinogram chunks to reconstruct
@@ -241,7 +238,7 @@ def rec_phase(variableDict):
                         # allowing for limited RAM machines to complete a full reconstruction
 
     nSino_per_chunk = (sino_end - sino_start)/chunks
-    log_lib.info("  *** reconstructing [%d] slices from slice [%d] to [%d] in [%d] chunks of [%d] slices each" % ((sino_end - sino_start), sino_start, sino_end, chunks, nSino_per_chunk))            
+    log_lib.info("Reconstructing [%d] slices from slice [%d] to [%d] in [%d] chunks of [%d] slices each" % ((sino_end - sino_start), sino_start, sino_end, chunks, nSino_per_chunk))            
 
     strt = 0
     for iChunk in range(0,chunks):
@@ -283,9 +280,7 @@ def rec_slice(variableDict):
     data_shape = get_dx_dims(variableDict['fname'], 'data')
     ssino = int(data_shape[1] * variableDict['nsino'])
 
-    # Select sinogram range to reconstruct
-    sino = None
-        
+    # Select sinogram range to reconstruct       
     start = ssino
     end = start + 1
     sino = (start, end)
@@ -312,8 +307,6 @@ def rec_try(variableDict):
     # log_lib.info(center_range[0], center_range[1], center_range[2])
 
     # Select sinogram range to reconstruct
-    sino = None
-        
     start = ssino
     end = start + 1
     sino = (start, end)
