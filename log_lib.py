@@ -1,6 +1,8 @@
-import os
+'''
+    Log Lib for Sector 2-BM 
+    
+'''
 import logging
-from datetime import datetime
 
 # Logging defines
 __GREEN = "\033[92m"
