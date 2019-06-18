@@ -22,6 +22,9 @@ import dxchange.reader as dxreader
 import numpy as np
 from datetime import datetime
 
+import matplotlib.pylab as pl
+import matplotlib.widgets as wdg
+
 import log_lib
 
 
@@ -41,8 +44,33 @@ variableDict = {'fname': 'data.h5',
         'reverse' : False,                     # True for 180-0 data set
         'auto' : False,                        # True to use autocentering
         'phase' :  False,                      # Use phase retrival    
-        'logs_home' : '.'
+        'logs_home' : '.',
+        'plot' : False
         }
+
+
+class slider():
+    def __init__(self, data, axis):
+        self.data = data
+        self.axis = axis
+
+        ax = pl.subplot(111)
+        pl.subplots_adjust(left=0.25, bottom=0.25)
+
+        self.frame = 0
+        self.l = pl.imshow(self.data[self.frame,:,:], cmap='gist_gray') 
+
+        axcolor = 'lightgoldenrodyellow'
+        axframe = pl.axes([0.25, 0.1, 0.65, 0.03])
+        self.sframe = wdg.Slider(axframe, 'Frame', 0, self.data.shape[0]-1, valfmt='%0.0f')
+        self.sframe.on_changed(self.update)
+
+        pl.show()
+
+    def update(self, val):
+        self.frame = int(np.around(self.sframe.val))
+        self.l.set_data(self.data[self.frame,:,:])
+        log_lib.info('%f' % self.axis[self.frame])
 
 
 def file_base_name(file_name):
@@ -359,6 +387,9 @@ def rec_try(variableDict):
         index = index + 1
 
     log_lib.info("  *** reconstructions: %s" % fname)
+
+    if variableDict['plot']:
+        slider(rec, np.arange(*center_range))
      
 
 def find_rotation_axis(variableDict):
@@ -401,6 +432,7 @@ def main(arg):
     parser.add_argument("--nsino", nargs='?', type=restricted_float, default=0.5, help="Location of the sinogram to reconstruct (0 top, 1 bottom): 0.5 (default 0.5)")
     parser.add_argument("--reverse",action="store_true", help="set when the data set was collected in reverse (180-0)")
     parser.add_argument("--auto",action="store_true", help="set to use autocenter, when set --axis value is ignored")
+    parser.add_argument("--plot",action="store_true", help="set to plot try result")
 
     args = parser.parse_args()
 
@@ -414,6 +446,7 @@ def main(arg):
     variableDict['center_search_width'] = args.srs
     variableDict['reverse'] = args.reverse
     variableDict['auto'] = args.auto
+    variableDict['plot'] = args.plot
 
     # create logger
     home = str(pathlib.Path.home())
