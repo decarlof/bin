@@ -29,6 +29,7 @@ import log_lib
 
 
 variableDict = {'fname': 'data.h5',
+        'rec_dir' : '/local/data',
         'nsino': 0.5,
         'algorithm': 'gridrec',
         'binning': 0,
@@ -157,7 +158,7 @@ def reconstruct(variableDict, sino):
     if (variableDict['phase'] is False):
         data = tomopy.normalize(proj, flat, dark)
     # remove stripes
-    #data = tomopy.remove_stripe_fw(data,level=7,wname='sym16',sigma=1,pad=True)
+    data = tomopy.remove_stripe_fw(data,level=7,wname='sym16',sigma=1,pad=True)
 
     # data = tomopy.remove_stripe_ti(data, variableDict['alpha']=1.5)
     # data = tomopy.remove_stripe_sf(data, size=150)
@@ -237,7 +238,7 @@ def rec_full(variableDict):
         rec = reconstruct(variableDict, sino)
                 
         if os.path.dirname(variableDict['fname']) is not '':
-            fname = os.path.dirname(variableDict['fname']) + os.sep + os.path.splitext(os.path.basename(variableDict['fname']))[0]+ '_full_rec/' + 'recon'
+            fname = variableDict['rec_dir'] + os.sep + os.path.splitext(os.path.basename(variableDict['fname']))[0]+ '_full_rec/' + 'recon'
         else:
             fname = '.' + os.sep + os.path.splitext(os.path.basename(variableDict['fname']))[0]+ '_full_rec/' + 'recon'
 
@@ -287,7 +288,7 @@ def rec_phase(variableDict):
             rec = reconstruct(variableDict, sino)
                 
             if os.path.dirname(variableDict['fname']) is not '':
-                fname = os.path.dirname(variableDict['fname']) + os.sep + os.path.splitext(os.path.basename(variableDict['fname']))[0]+ '_subset_rec/' + 'recon_' + str(alphaa[k])
+                fname = variableDict['rec_dir'] + os.sep + os.path.splitext(os.path.basename(variableDict['fname']))[0]+ '_subset_rec/' + 'recon_' + str(alphaa[k])
             else:
                 fname = '.' + os.sep + os.path.splitext(os.path.basename(variableDict['fname']))[0]+ '_subset_rec/' + 'recon_' + str(alphaa[k])
 
@@ -317,7 +318,7 @@ def rec_slice(variableDict):
     rec = reconstruct(variableDict, sino)
 
     if os.path.dirname(variableDict['fname']) is not '':
-        fname = os.path.dirname(variableDict['fname']) + os.sep + 'slice_rec/' + 'recon_' + os.path.splitext(os.path.basename(variableDict['fname']))[0]
+        fname = variableDict['rec_dir'] + os.sep + 'slice_rec/' + 'recon_' + os.path.splitext(os.path.basename(variableDict['fname']))[0]
     else:
         fname = './slice_rec/' + 'recon_' + os.path.splitext(os.path.basename(variableDict['fname']))[0]
     dxchange.write_tiff_stack(rec, fname=fname)
@@ -353,7 +354,7 @@ def rec_try(variableDict):
     data = tomopy.normalize(proj, flat, dark, cutoff=1.4)
 
     # remove stripes
-    # data = tomopy.remove_stripe_fw(data,level=7,wname='sym16',sigma=1,pad=True)
+    data = tomopy.remove_stripe_fw(data,level=7,wname='sym16',sigma=1,pad=True)
 
 
     log_lib.info("  *** raw data: %s" % variableDict['fname'])
@@ -380,7 +381,7 @@ def rec_try(variableDict):
 
     index = 0
     # Save images to a temporary folder.
-    fname = os.path.dirname(variableDict['fname']) + os.sep + 'try_rec/' + path_base_name(variableDict['fname']) + os.sep + 'recon_' ##+ os.path.splitext(os.path.basename(variableDict['fname']))[0]    
+    fname = variableDict['rec_dir'] + os.sep + 'try_rec/' + path_base_name(variableDict['fname']) + os.sep + 'recon_' ##+ os.path.splitext(os.path.basename(variableDict['fname']))[0]    
     for axis in np.arange(*center_range):
         rfname = fname + str('{0:.2f}'.format(axis) + '.tiff')
         dxchange.write_tiff(rec[index], fname=rfname, overwrite=True)
@@ -447,6 +448,10 @@ def main(arg):
     variableDict['reverse'] = args.reverse
     variableDict['auto'] = args.auto
     variableDict['plot'] = args.plot
+
+    variableDict['rec_dir'] = os.path.dirname(variableDict['fname']) + '_rec'
+
+    print(variableDict['rec_dir'])
 
     # create logger
     home = str(pathlib.Path.home())
