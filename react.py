@@ -87,7 +87,7 @@ def main(args):
     options = Options()
 
     args = parser.parse_args(namespace=options)
-#    print('waiting for new file in %s to reconstruct' % sys.argv[1])
+    # print('waiting for new file in %s to reconstruct' % sys.argv[1])
     while True:
         wm = WatchManager()
         process = Process(options)
@@ -101,6 +101,7 @@ def main(args):
                 if notifier.check_events():
                     print('waiting for new file in %s to process' % sys.argv[1])
                     notifier.read_events()
+
         except Reload:
             pass
         except KeyboardInterrupt:
