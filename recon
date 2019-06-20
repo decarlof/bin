@@ -451,8 +451,6 @@ def main(arg):
 
     variableDict['rec_dir'] = os.path.dirname(variableDict['fname']) + '_rec'
 
-    print(variableDict['rec_dir'])
-
     # create logger
     home = str(pathlib.Path.home())
     logs_home = home + '/logs/'
