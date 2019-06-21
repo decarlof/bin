@@ -497,7 +497,8 @@ def main(arg):
             for h5fname in dict2:
                 variableDict['rot_center'] = dict2[h5fname]
                 fname = top + h5fname
-                log_lib.info("Reconstructing %s" % h5fname)
+                variableDict['fname'] = fname
+                log_lib.info("Reconstructing %s" % fname)
                 # Set default rotation axis location
                 if variableDict['rot_center'] == 0:
                     data_shape = get_dx_dims(variableDict['fname'], 'data')
