@@ -16,6 +16,10 @@ import numpy as np
 import h5py
 import tomopy
 import dxchange
+import pathlib
+from datetime import datetime
+import log_lib
+
 
 def get_dx_dims(fname, dataset):
     """
@@ -52,20 +56,20 @@ def restricted_float(x):
     return x
     
 
-def find_rotation_axis(h5fname, nsino):
+def find_rotation_axis(fname, nsino):
     
-    data_size = get_dx_dims(h5fname, 'data')
+
+    log_lib.info("  *** calculating automatic center")
+    data_size = get_dx_dims(fname, 'data')
     ssino = int(data_size[1] * nsino)
 
     # Select sinogram range to reconstruct
-    sino = None
-        
     start = ssino
     end = start + 1
     sino = (start, end)
 
     # Read APS 32-BM raw data
-    proj, flat, dark, theta = dxchange.read_aps_32id(h5fname, sino=sino)
+    proj, flat, dark, theta = dxchange.read_aps_32id(fname, sino=sino)
         
     # Flat-field correction of raw data
     data = tomopy.normalize(proj, flat, dark, cutoff=1.4)
@@ -75,7 +79,7 @@ def find_rotation_axis(h5fname, nsino):
 
     # find rotation center
     rot_center = tomopy.find_center_vo(data)   
-
+    log_lib.info("  *** automatic center: %f" % rot_center)
     return rot_center
 
 
@@ -88,12 +92,25 @@ def main(arg):
     args = parser.parse_args()
 
     # Set path to the micro-CT data to reconstruct.
+    # fname = args.fname
+    # nsino = float(args.nsino)
+
     fname = args.fname
     nsino = float(args.nsino)
 
+    # create logger
+    home = str(pathlib.Path.home())
+    logs_home = home + '/logs/'
+
+    # make sure logs directory exists
+    if not os.path.exists(logs_home):
+        os.makedirs(logs_home)
+
+    lfname = logs_home + 'center_' + datetime.strftime(datetime.now(), "%Y-%m-%d_%H:%M:%S") + '.log'
+    log_lib.setup_logger(lfname)
+
     if os.path.isfile(fname):       
         rot_center = find_rotation_axis(fname, nsino)
-        print(fname, rot_center)
         
     elif os.path.isdir(fname):
         # Add a trailing slash if missing
@@ -101,20 +118,20 @@ def main(arg):
     
         # Set the file name that will store the rotation axis positions.
         jfname = top + "rotation_axis.json"
-        print(os.listdir(top))
-        
+        # log_lib.info(os.listdir(top))
         h5_file_list = list(filter(lambda x: x.endswith(('.h5', '.hdf')), os.listdir(top)))
+        h5_file_list.sort()
 
-        print("Found: ", h5_file_list.sort())
-        print("Determining the rotation axis location ...")
+        log_lib.info("Found: %s" % h5_file_list)
+        log_lib.info("Determining the rotation axis location ...")
         
         dic_centers = {}
         i=0
-        for fname in h5_file_list.sort():
+        for fname in h5_file_list:
             h5fname = top + fname
             rot_center = find_rotation_axis(h5fname, nsino)
             case =  {fname : rot_center}
-            print(case)
+            log_lib.info(case)
             dic_centers[i] = case
             i += 1
 
@@ -123,10 +140,10 @@ def main(arg):
         f = open(jfname,"w")
         f.write(json_dump)
         f.close()
-        print("Rotation axis locations save in: ", jfname)
+        log_lib.info("Rotation axis locations save in: %s" % jfname)
     
     else:
-        print("Directory or File Name does not exist: ", fname)
+        log_lib.info("Directory or File Name does not exist: %s " % fname)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
