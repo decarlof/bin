@@ -373,9 +373,18 @@ def rec_try(variableDict):
         stack[index] = data[:, 0, :]
         index = index + 1
 
-    # Reconstruct the same slice with a range of centers.
-    rec = tomopy.recon(stack, theta, center=np.arange(*center_range), sinogram_order=True, algorithm='gridrec', filter_name='parzen', nchunk=1)
+    # padding 
+    N = stack.shape[2]
+    stack_pad = np.zeros([stack.shape[0],stack.shape[1],3*N//2],dtype = "float32")
+    stack_pad[:,:,N//4:5*N//4] = stack
+    stack_pad[:,:,0:N//4] = np.reshape(stack[:,:,0],[stack.shape[0],stack.shape[1],1])
+    stack_pad[:,:,5*N//4:] = np.reshape(stack[:,:,-1],[stack.shape[0],stack.shape[1],1])
+    stack = stack_pad
 
+    # Reconstruct the same slice with a range of centers. 
+    rec = tomopy.recon(stack, theta, center=np.arange(*center_range)+N//4, sinogram_order=True, algorithm='gridrec', filter_name='parzen', nchunk=1)
+ 
+    rec = rec[:,N//4:5*N//4,N//4:5*N//4]
     # Mask each reconstructed slice with a circle.
     rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
 
