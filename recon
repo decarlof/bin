@@ -151,6 +151,13 @@ def reconstruct(variableDict, sino):
         theta = np.linspace(np.pi , (0+step_size), theta_size)    # zinger_removal
         log_lib.warning("  *** overwrite theta")
 
+    if variableDict['missing']:
+        miss_angles = [variableDict['start'], variableDict['end']]
+        
+        # Manage the missing angles:
+        proj = np.concatenate((proj[0:miss_angles[0],:,:], proj[miss_angles[1]+1:-1,:,:]), axis=0)
+        theta = np.concatenate((theta[0:miss_angles[0]], theta[miss_angles[1]+1:-1]))
+
     # zinger_removal
     # proj = tomopy.misc.corr.remove_outlier(proj, variableDict['zinger_level'], size=15, axis=0)
     # flat = tomopy.misc.corr.remove_outlier(flat, variableDict['zinger_level']_w, size=15, axis=0)
@@ -350,6 +357,13 @@ def rec_try(variableDict):
         theta = np.linspace(np.pi , (0+step_size), theta_size)    # zinger_removal
         log_lib.warning("  *** overwrite theta")
 
+    if variableDict['missing']:
+        miss_angles = [variableDict['start'], variableDict['end']]
+        
+        # Manage the missing angles:
+        proj = np.concatenate((proj[0:miss_angles[0],:,:], proj[miss_angles[1]+1:-1,:,:]), axis=0)
+        theta = np.concatenate((theta[0:miss_angles[0]], theta[miss_angles[1]+1:-1]))
+
     # Flat-field correction of raw data.
     data = tomopy.normalize(proj, flat, dark, cutoff=1.4)
 
@@ -443,6 +457,9 @@ def main(arg):
     parser.add_argument("--reverse",action="store_true", help="set when the data set was collected in reverse (180-0)")
     parser.add_argument("--auto",action="store_true", help="set to use autocenter, when set --axis value is ignored")
     parser.add_argument("--plot",action="store_true", help="set to plot try result")
+    parser.add_argument("--missing",action="store_true", help="set to enable missing angle option. Must set start/end flags")
+    parser.add_argument("--start", nargs='?', type=int, default=0, help="Projection number of the first blocked view")
+    parser.add_argument("--end", nargs='?', type=int, default=1, help="Projection number of the first blocked view")
 
     args = parser.parse_args()
 
@@ -457,6 +474,9 @@ def main(arg):
     variableDict['reverse'] = args.reverse
     variableDict['auto'] = args.auto
     variableDict['plot'] = args.plot
+    variableDict['missing'] = args.missing
+    variableDict['start'] = args.start
+    variableDict['end'] = args.end
 
     variableDict['rec_dir'] = os.path.dirname(variableDict['fname']) + '_rec'
 
