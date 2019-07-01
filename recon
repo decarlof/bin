@@ -370,6 +370,9 @@ def rec_try(variableDict):
     # remove stripes
     data = tomopy.remove_stripe_fw(data,level=7,wname='sym16',sigma=1,pad=True)
 
+    # downsample
+    variableDict['rot_center'] = variableDict['rot_center']/np.power(2, float(variableDict['binning']))
+    data = tomopy.downsample(data, level=variableDict['binning']) 
 
     log_lib.info("  *** raw data: %s" % variableDict['fname'])
     log_lib.info("  *** center: %f" % variableDict['rot_center'])
