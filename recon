@@ -338,10 +338,13 @@ def rec_try(variableDict):
     data_shape = get_dx_dims(variableDict['fname'], 'data')
     log_lib.info(data_shape)
     ssino = int(data_shape[1] * variableDict['nsino'])
+
+    # downsample
+    variableDict['rot_center'] = variableDict['rot_center']/np.power(2, float(variableDict['binning']))
+    variableDict['center_search_width'] = variableDict['center_search_width']/np.power(2, float(variableDict['binning']))
+
     center_range = (variableDict['rot_center']-variableDict['center_search_width'], variableDict['rot_center']+variableDict['center_search_width'], 0.5)
     log_lib.info('  *** reconstruct slice %d with rotation axis ranging from %.2f to %.2f in %.2f pixel steps' % (ssino, center_range[0], center_range[1], center_range[2]))
-
-    # log_lib.info(center_range[0], center_range[1], center_range[2])
 
     # Select sinogram range to reconstruct
     start = ssino
@@ -370,10 +373,6 @@ def rec_try(variableDict):
     # remove stripes
     data = tomopy.remove_stripe_fw(data,level=7,wname='sym16',sigma=1,pad=True)
 
-    # downsample
-    variableDict['rot_center'] = variableDict['rot_center']/np.power(2, float(variableDict['binning']))
-    data = tomopy.downsample(data, level=variableDict['binning']) 
-
     log_lib.info("  *** raw data: %s" % variableDict['fname'])
     log_lib.info("  *** center: %f" % variableDict['rot_center'])
 
@@ -383,7 +382,15 @@ def rec_try(variableDict):
     data = tomopy.remove_neg(data, val=0.00)
     data[np.where(data == np.inf)] = 0.00
 
-    stack = np.empty((len(np.arange(*center_range)), data_shape[0], data_shape[2]))
+
+    # downsample
+    # variableDict['rot_center'] = variableDict['rot_center']/np.power(2, float(variableDict['binning']))
+    data = tomopy.downsample(data, level=variableDict['binning']) 
+
+    data_shape2 = data_shape[2]
+    data_shape2 = data_shape2 / np.power(2, float(variableDict['binning']))
+
+    stack = np.empty((len(np.arange(*center_range)), data_shape[0], int(data_shape2)))
 
     index = 0
     for axis in np.arange(*center_range):
@@ -397,6 +404,7 @@ def rec_try(variableDict):
     stack_pad[:,:,0:N//4] = np.reshape(stack[:,:,0],[stack.shape[0],stack.shape[1],1])
     stack_pad[:,:,5*N//4:] = np.reshape(stack[:,:,-1],[stack.shape[0],stack.shape[1],1])
     stack = stack_pad
+
 
     # Reconstruct the same slice with a range of centers. 
     rec = tomopy.recon(stack, theta, center=np.arange(*center_range)+N//4, sinogram_order=True, algorithm='gridrec', filter_name='parzen', nchunk=1)
