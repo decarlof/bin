@@ -32,6 +32,7 @@ variableDict = {'fname': 'data.h5',
         'rec_dir' : '/local/data',
         'nsino': 0.5,
         'algorithm': 'gridrec',
+        'filter' : 'parzen',
         'binning': 0,
         'rot_center': 1024,
         'rec_type': 'slice',
@@ -81,6 +82,7 @@ def file_base_name(file_name):
         return base_name
     else:
         return file_name
+
 
 def path_base_name(path):
     file_name = os.path.basename(path)
@@ -164,6 +166,7 @@ def reconstruct(variableDict, sino):
 
     if (variableDict['phase'] is False):
         data = tomopy.normalize(proj, flat, dark)
+
     # remove stripes
     data = tomopy.remove_stripe_fw(data,level=7,wname='sym16',sigma=1,pad=True)
 
@@ -175,7 +178,6 @@ def reconstruct(variableDict, sino):
         data = tomopy.prep.phase.retrieve_phase(data,pixel_size=variableDict['detector_pixel_size_x'],dist=variableDict['sample_detector_distance'],energy=variableDict['monochromator_energy'], alpha=variableDict['alpha'],pad=True)
 
     log_lib.info("  *** raw data: %s" % variableDict['fname'])
-    # log_lib.info("  *** center: %f" % variableDict['rot_center'])
 
     if (variableDict['phase'] is False):
         data = tomopy.minus_log(data)
@@ -187,7 +189,8 @@ def reconstruct(variableDict, sino):
     rot_center = variableDict['rot_center'] / np.power(2, float(variableDict['binning']))
     log_lib.info("  *** rotation center: %f" % rot_center)
     data = tomopy.downsample(data, level=variableDict['binning']) 
-    data = tomopy.downsample(data, level=variableDict['binning'], axis=1)
+    if (variableDict['binning'] == 0):
+        data = tomopy.downsample(data, level=variableDict['binning'], axis=1)
 
     # padding 
     N = data.shape[2]
@@ -205,13 +208,13 @@ def reconstruct(variableDict, sino):
         options = {'proj_type':'cuda', 'method':'SIRT_CUDA', 'num_iter':200, 'extra_options':extra_options}
         rec = tomopy.recon(data, theta, center=rot_center, algorithm=tomopy.astra, options=options)
     else:        
-        rec = tomopy.recon(data, theta, center=rot_center, algorithm=variableDict['algorithm'], filter_name='parzen')
- 
+        rec = tomopy.recon(data, theta, center=rot_center, algorithm=variableDict['algorithm'], filter_name=variableDict['filter'])
+        print(variableDict['algorithm'], variableDict['filter'])
+
     rec = rec[:,N//4:5*N//4,N//4:5*N//4]
 
     # Mask each reconstructed slice with a circle.
     rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
-    
     return rec
       
 
@@ -219,24 +222,24 @@ def rec_full(variableDict):
     
     data_shape = get_dx_dims(variableDict['fname'], 'data')
 
-    nSino_per_chunk = 256 # always power of 2
+    nSino_per_chunk = 128 # always power of 2               # number of sinogram chunks to reconstruct
+                                                            # only one chunk at the time is reconstructed
+                                                            # allowing for limited RAM machines to complete a full reconstruction
+                                                            #
+                                                            # set this number based on how much memory your computer has
+                                                            # if it cannot complete a full size reconstruction lower it
 
-    chunks = int(np.ceil(data_shape[1]/nSino_per_chunk))
+    chunks = int(np.ceil(data_shape[1]/nSino_per_chunk))    
 
     # Select sinogram range to reconstruct.
     sino_start = 0
     sino_end = chunks*nSino_per_chunk
-
-    #chunks = 6          # number of sinogram chunks to reconstruct
-                        # only one chunk at the time is reconstructed
-                        # allowing for limited RAM machines to complete a full reconstruction
-
     
     log_lib.info("Reconstructing [%d] slices from slice [%d] to [%d] in [%d] chunks of [%d] slices each" % ((sino_end - sino_start), sino_start, sino_end, chunks, nSino_per_chunk))            
 
     strt = 0
     for iChunk in range(0,chunks):
-        log_lib.info('chunk # %i' % (iChunk+1))
+        log_lib.info('chunk # %i' % (iChunk))
         sino_chunk_start = np.int(sino_start + nSino_per_chunk*iChunk)
         sino_chunk_end = np.int(sino_start + nSino_per_chunk*(iChunk+1))
         log_lib.info('  *** [%i, %i]' % (sino_chunk_start, sino_chunk_end))
@@ -256,12 +259,13 @@ def rec_full(variableDict):
         log_lib.info("  *** reconstructions: %s" % fname)
         if(iChunk == chunks-1):
                 rec = rec[:,data_shape[1]-chunks*nSino_per_chunk]
-        # dxchange.write_tiff_stack(rec, fname=fname, start=strt)
         dxchange.write_tiff_stack(rec, fname=fname, start=(int(strt/np.power(2, float(variableDict['binning'])))))
-
         strt += (sino[1] - sino[0])    
 
-    log = "python rec.py --axis " + str(variableDict['rot_center']) + " --type full " + variableDict['fname'] + "\n"
+    if (variableDict['binning'] > 0):
+        log = "python rec.py --axis " + str(variableDict['rot_center']) + " --type full " + variableDict['fname'] + " --bin " + str(variableDict['binning']) + "\n"
+    else:
+        log = "python rec.py --axis " + str(variableDict['rot_center']) + " --type full " + variableDict['fname'] + "\n"
     log_lib.info('  *** command to repeat the reconstruction: %s' % log)
 
     p = pathlib.Path(fname)
@@ -270,7 +274,7 @@ def rec_full(variableDict):
     with open(lfname, "a") as myfile:
         myfile.write(log)
     
-def rec_phase(variableDict):
+def phase_alpha_test(variableDict):
     
     data_shape = get_dx_dims(variableDict['fname'], 'data')
     ssino = int(data_shape[1] * variableDict['nsino'])
@@ -331,7 +335,6 @@ def rec_slice(variableDict):
     sino = (start, end)
 
     rec = reconstruct(variableDict, sino)
-
     if os.path.dirname(variableDict['fname']) is not '':
         fname = variableDict['rec_dir'] + os.sep + 'slice_rec/' + 'recon_' + os.path.splitext(os.path.basename(variableDict['fname']))[0]
     else:
@@ -415,9 +418,10 @@ def rec_try(variableDict):
 
 
     # Reconstruct the same slice with a range of centers. 
-    rec = tomopy.recon(stack, theta, center=np.arange(*center_range)+N//4, sinogram_order=True, algorithm='gridrec', filter_name='parzen', nchunk=1)
- 
+    rec = tomopy.recon(stack, theta, center=np.arange(*center_range)+N//4, sinogram_order=True, algorithm=variableDict['algorithm'], filter_name=variableDict['filter'], nchunk=1)
+    print(variableDict['algorithm'], variableDict['filter'],)
     rec = rec[:,N//4:5*N//4,N//4:5*N//4]
+ 
     # Mask each reconstructed slice with a circle.
     rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
 
@@ -437,7 +441,6 @@ def rec_try(variableDict):
 
 def find_rotation_axis(variableDict):
     
-
     log_lib.info("  *** calculating automatic center")
     data_size = get_dx_dims(variableDict['fname'], 'data')
     ssino = int(data_size[1] * variableDict['nsino'])
@@ -464,13 +467,13 @@ def find_rotation_axis(variableDict):
 
 def main(arg):
 
-
     parser = argparse.ArgumentParser()
     parser.add_argument("fname", help="Directory containing multiple datasets or file name of a single dataset: /data/ or /data/sample.h5")
     parser.add_argument("--axis", nargs='?', type=str, default="0", help="Rotation axis location (pixel): 1024.0 (default 1/2 image horizontal size)")
     parser.add_argument("--bin", nargs='?', type=int, default=0, help="Reconstruction binning factor as power(2, choice) (default 0, no binning)")
     parser.add_argument("--method", nargs='?', type=str, default="gridrec", help="Reconstruction algorithm: astrasirt, gridrec, sirtfbp (default gridrec)")
-    parser.add_argument("--type", nargs='?', type=str, default="slice", help="Reconstruction type: full, slice, try, phase (default slice)")
+    parser.add_argument("--filter", nargs='?', type=str, default="parzen", help="Reconstruction filter: none, shepp, cosine, hann, hamming, ramlak, parzen, butterworth (default parzen)")
+    parser.add_argument("--type", nargs='?', type=str, default="slice", help="Reconstruction type: full, slice, try, phase (default slice). phase tests phase retrieval alpha parameter)")
     parser.add_argument("--srs", nargs='?', type=int, default=10, help="+/- center search width (pixel): 10 (default 10). Search is in 0.5 pixel increments")
     parser.add_argument("--nsino", nargs='?', type=restricted_float, default=0.5, help="Location of the sinogram to reconstruct (0 top, 1 bottom): 0.5 (default 0.5)")
     parser.add_argument("--reverse",action="store_true", help="set when the data set was collected in reverse (180-0)")
@@ -485,6 +488,7 @@ def main(arg):
     # Set path to the micro-CT data to reconstruct.
     variableDict['fname'] = args.fname
     variableDict['algorithm'] = args.method
+    variableDict['filter'] = args.filter
     variableDict['rot_center'] = float(args.axis)
     variableDict['binning'] = int(args.bin)
     variableDict['nsino'] = float(args.nsino)
@@ -526,7 +530,7 @@ def main(arg):
         elif variableDict['rec_type'] == "full":
             rec_full(variableDict)
         elif variableDict['rec_type'] == "phase":
-            rec_phase(variableDict)
+            phase_alpha_test(variableDict)
         else:
             rec_slice(variableDict)
 
