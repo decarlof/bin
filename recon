@@ -175,7 +175,7 @@ def reconstruct(variableDict, sino):
         data = tomopy.prep.phase.retrieve_phase(data,pixel_size=variableDict['detector_pixel_size_x'],dist=variableDict['sample_detector_distance'],energy=variableDict['monochromator_energy'], alpha=variableDict['alpha'],pad=True)
 
     log_lib.info("  *** raw data: %s" % variableDict['fname'])
-    log_lib.info("  *** center: %f" % variableDict['rot_center'])
+    # log_lib.info("  *** center: %f" % variableDict['rot_center'])
 
     if (variableDict['phase'] is False):
         data = tomopy.minus_log(data)
@@ -184,7 +184,8 @@ def reconstruct(variableDict, sino):
     data = tomopy.remove_neg(data, val=0.00)
     data[np.where(data == np.inf)] = 0.00
 
-    variableDict['rot_center'] = variableDict['rot_center']/np.power(2, float(variableDict['binning']))
+    rot_center = variableDict['rot_center'] / np.power(2, float(variableDict['binning']))
+    log_lib.info("  *** rotation center: %f" % rot_center)
     data = tomopy.downsample(data, level=variableDict['binning']) 
     data = tomopy.downsample(data, level=variableDict['binning'], axis=1)
 
@@ -195,7 +196,7 @@ def reconstruct(variableDict, sino):
     data_pad[:,:,0:N//4] = np.reshape(data[:,:,0],[data.shape[0],data.shape[1],1])
     data_pad[:,:,5*N//4:] = np.reshape(data[:,:,-1],[data.shape[0],data.shape[1],1])
     data = data_pad
-    rot_center = variableDict['rot_center']+N//4
+    rot_center = rot_center + N//4
 
     # Reconstruct object.
     log_lib.info("  *** algorithm: %s" % variableDict['algorithm'])
@@ -208,7 +209,6 @@ def reconstruct(variableDict, sino):
  
     rec = rec[:,N//4:5*N//4,N//4:5*N//4]
 
-
     # Mask each reconstructed slice with a circle.
     rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
     
@@ -219,15 +219,19 @@ def rec_full(variableDict):
     
     data_shape = get_dx_dims(variableDict['fname'], 'data')
 
+    nSino_per_chunk = 256 # always power of 2
+
+    chunks = int(np.ceil(data_shape[1]/nSino_per_chunk))
+
     # Select sinogram range to reconstruct.
     sino_start = 0
-    sino_end = data_shape[1]
+    sino_end = chunks*nSino_per_chunk
 
-    chunks = 6          # number of sinogram chunks to reconstruct
+    #chunks = 6          # number of sinogram chunks to reconstruct
                         # only one chunk at the time is reconstructed
                         # allowing for limited RAM machines to complete a full reconstruction
 
-    nSino_per_chunk = (sino_end - sino_start)/chunks
+    
     log_lib.info("Reconstructing [%d] slices from slice [%d] to [%d] in [%d] chunks of [%d] slices each" % ((sino_end - sino_start), sino_start, sino_end, chunks, nSino_per_chunk))            
 
     strt = 0
@@ -250,8 +254,12 @@ def rec_full(variableDict):
             fname = '.' + os.sep + os.path.splitext(os.path.basename(variableDict['fname']))[0]+ '_full_rec/' + 'recon'
 
         log_lib.info("  *** reconstructions: %s" % fname)
-        dxchange.write_tiff_stack(rec, fname=fname, start=strt)
-        strt += sino[1] - sino[0]
+        if(iChunk == chunks-1):
+                rec = rec[:,data_shape[1]-chunks*nSino_per_chunk]
+        # dxchange.write_tiff_stack(rec, fname=fname, start=strt)
+        dxchange.write_tiff_stack(rec, fname=fname, start=(int(strt/np.power(2, float(variableDict['binning'])))))
+
+        strt += (sino[1] - sino[0])    
 
     log = "python rec.py --axis " + str(variableDict['rot_center']) + " --type full " + variableDict['fname'] + "\n"
     log_lib.info('  *** command to repeat the reconstruction: %s' % log)
