@@ -189,8 +189,7 @@ def reconstruct(variableDict, sino):
     rot_center = variableDict['rot_center'] / np.power(2, float(variableDict['binning']))
     log_lib.info("  *** rotation center: %f" % rot_center)
     data = tomopy.downsample(data, level=variableDict['binning']) 
-    if (variableDict['binning'] == 0):
-        data = tomopy.downsample(data, level=variableDict['binning'], axis=1)
+    data = tomopy.downsample(data, level=variableDict['binning'], axis=1)
 
     # padding 
     N = data.shape[2]
@@ -209,7 +208,6 @@ def reconstruct(variableDict, sino):
         rec = tomopy.recon(data, theta, center=rot_center, algorithm=tomopy.astra, options=options)
     else:        
         rec = tomopy.recon(data, theta, center=rot_center, algorithm=variableDict['algorithm'], filter_name=variableDict['filter'])
-        print(variableDict['algorithm'], variableDict['filter'])
 
     rec = rec[:,N//4:5*N//4,N//4:5*N//4]
 
@@ -259,20 +257,20 @@ def rec_full(variableDict):
         log_lib.info("  *** reconstructions: %s" % fname)
         if(iChunk == chunks-1):
                 rec = rec[:,data_shape[1]-chunks*nSino_per_chunk]
-        dxchange.write_tiff_stack(rec, fname=fname, start=(int(strt/np.power(2, float(variableDict['binning'])))))
-        strt += (sino[1] - sino[0])    
+        dxchange.write_tiff_stack(rec, fname=fname, start=strt)
+        strt += int((sino[1] - sino[0]) / np.power(2, float(variableDict['binning'])))
 
+    rec_log_msg = "\n" + "python rec.py --axis " + str(variableDict['rot_center']) + " --type full " + variableDict['fname']
     if (variableDict['binning'] > 0):
-        log = "python rec.py --axis " + str(variableDict['rot_center']) + " --type full " + variableDict['fname'] + " --bin " + str(variableDict['binning']) + "\n"
-    else:
-        log = "python rec.py --axis " + str(variableDict['rot_center']) + " --type full " + variableDict['fname'] + "\n"
-    log_lib.info('  *** command to repeat the reconstruction: %s' % log)
+        rec_log_msg = rec_log_msg + " --bin " + str(variableDict['binning'])
+
+    # log_lib.info('  *** command to repeat the reconstruction: %s' % rec_log_msg)
 
     p = pathlib.Path(fname)
     lfname = variableDict['logs_home'] + p.parts[-3] + '.log'
     log_lib.info('  *** command added to %s ' % lfname)
     with open(lfname, "a") as myfile:
-        myfile.write(log)
+        myfile.write(rec_log_msg)
     
 def phase_alpha_test(variableDict):
     
@@ -315,14 +313,14 @@ def phase_alpha_test(variableDict):
             dxchange.write_tiff_stack(rec, fname=fname, start=strt)
         strt += sino[1] - sino[0]
 
-    log = "python rec.py --axis " + str(variableDict['rot_center']) + " --type subset " + variableDict['fname'] + "\n"
-    log_lib.info('  *** command to repeat the reconstruction: %s' % log)
+    rec_log_msg = "\n" + "python rec.py --axis " + str(variableDict['rot_center']) + " --type subset " + variableDict['fname']
+    # log_lib.info('  *** command to repeat the reconstruction: %s' % rec_log_msg)
 
     p = pathlib.Path(fname)
     lfname = variableDict['logs_home'] + p.parts[-3] + '.log'
-    log_lib.info('  *** comnad added to %s ' % lfname)
+    log_lib.info('  *** command added to %s ' % lfname)
     with open(lfname, "a") as myfile:
-        myfile.write(log)
+        myfile.write(rec_log_msg)
 
 def rec_slice(variableDict):
     
@@ -419,7 +417,6 @@ def rec_try(variableDict):
 
     # Reconstruct the same slice with a range of centers. 
     rec = tomopy.recon(stack, theta, center=np.arange(*center_range)+N//4, sinogram_order=True, algorithm=variableDict['algorithm'], filter_name=variableDict['filter'], nchunk=1)
-    print(variableDict['algorithm'], variableDict['filter'],)
     rec = rec[:,N//4:5*N//4,N//4:5*N//4]
  
     # Mask each reconstructed slice with a circle.
