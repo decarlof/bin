@@ -247,15 +247,21 @@ def rec_full(variableDict):
         sino = (int(sino_chunk_start), int(sino_chunk_end))
         # Reconstruct.
         rec = reconstruct(variableDict, sino)
-                
         if os.path.dirname(variableDict['fname']) is not '':
             fname = variableDict['rec_dir'] + os.sep + os.path.splitext(os.path.basename(variableDict['fname']))[0]+ '_full_rec/' + 'recon'
         else:
             fname = '.' + os.sep + os.path.splitext(os.path.basename(variableDict['fname']))[0]+ '_full_rec/' + 'recon'
 
         log_lib.info("  *** reconstructions: %s" % fname)
+
         if(iChunk == chunks-1):
-                rec = rec[:,data_shape[1]-chunks*nSino_per_chunk]
+            log_lib.info("  handling of the last chunk %d " % iChunk)
+            log_lib.info("  *** data_shape %d" % (data_shape[1]))
+            log_lib.info("  *** chunks %d" % (chunks))
+            log_lib.info("  *** nSino_per_chunk %d" % (nSino_per_chunk))
+            log_lib.info("  *** last rec size %d" % (data_shape[1]-(chunks-1)*nSino_per_chunk))
+            rec = rec[0:data_shape[1]-(chunks-1)*nSino_per_chunk,:,:]
+            
         dxchange.write_tiff_stack(rec, fname=fname, start=strt)
         strt += int((sino[1] - sino[0]) / np.power(2, float(variableDict['binning'])))
 
