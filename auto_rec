@@ -1,3 +1,4 @@
 DIR=$1
-react.py $DIR -p '*.h5' 'recon --type try --srs 100 $f'
+react.py $DIR -p '*.h5' 'recon --type try --srs 100 --axis 1124 $f'
+##react.py $DIR -p '*.h5' 'recon --type try --srs 200 $f'
 ##react.py $DIR -p '*.h5' 'recon --auto $f'

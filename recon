@@ -219,7 +219,7 @@ def rec_full(variableDict):
     
     data_shape = get_dx_dims(variableDict['fname'], 'data')
 
-    nSino_per_chunk = 128 # always power of 2               # number of sinogram chunks to reconstruct
+    nSino_per_chunk = 64  # always power of 2               # number of sinogram chunks to reconstruct
                                                             # only one chunk at the time is reconstructed
                                                             # allowing for limited RAM machines to complete a full reconstruction
                                                             #
