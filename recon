@@ -142,6 +142,31 @@ def read_rot_centers(fname):
         exit()
 
 
+def patch_projection(data, miss_angles):
+
+    fdatanew = np.fft.fft(data,axis=2)
+
+    w = int((miss_angles[1]-miss_angles[0]) * 0.3)
+
+
+    fdatanew[miss_angles[0]:miss_angles[0]+w,:,:] = np.fft.fft(data[miss_angles[0]-1,:,:],axis=1)
+    fdatanew[miss_angles[0]:miss_angles[0]+w,:,:] *= np.reshape(np.cos(np.pi/2*np.linspace(0,1,w)),[w,1,1])
+
+    fdatanew[miss_angles[1]-w:miss_angles[1],:,:] = np.fft.fft(data[miss_angles[1]+1,:,:],axis=1)
+    fdatanew[miss_angles[1]-w:miss_angles[1],:,:] *= np.reshape(np.sin(np.pi/2*np.linspace(0,1,w)),[w,1,1])
+
+    fdatanew[miss_angles[0]+w:miss_angles[1]-w,:,:] = 0
+    # log_lib.warning("  *** %d, %d, %d " % (datanew.shape[0], datanew.shape[1], datanew.shape[2]))
+
+    log_lib.warning("  *** patch_projection")
+    slider(np.log(np.abs(fdatanew.swapaxes(0,1))), axis=0)
+    a = np.real(np.fft.ifft(fdatanew,axis=2))
+    b = np.imag(np.fft.ifft(fdatanew,axis=2))
+    print(a.shape)
+    slider(a.swapaxes(0,1), axis=0)
+    slider(b.swapaxes(0,1), axis=0)
+    return np.real(np.fft.ifft(fdatanew,axis=2))
+
 def reconstruct(variableDict, sino):
 
     # Read APS 32-BM raw data.
@@ -153,24 +178,39 @@ def reconstruct(variableDict, sino):
         theta = np.linspace(np.pi , (0+step_size), theta_size)    # zinger_removal
         log_lib.warning("  *** overwrite theta")
 
-    if variableDict['missing']:
-        miss_angles = [variableDict['start'], variableDict['end']]
+    # if variableDict['missing']:
+    #     miss_angles = [variableDict['start'], variableDict['end']]
         
-        # Manage the missing angles:
-        proj = np.concatenate((proj[0:miss_angles[0],:,:], proj[miss_angles[1]+1:-1,:,:]), axis=0)
-        theta = np.concatenate((theta[0:miss_angles[0]], theta[miss_angles[1]+1:-1]))
+    # #     # Manage the missing angles:
+    # #     # proj = np.concatenate((proj[0:miss_angles[0],:,:], proj[miss_angles[1]+1:-1,:,:]), axis=0)
+    # #     # theta = np.concatenate((theta[0:miss_angles[0]], theta[miss_angles[1]+1:-1]))
+    #     proj = patch_projection(1.0*proj, miss_angles)
+    #     # proj[miss_angles[0]:miss_angles[1],:,:] = 0
 
-    # zinger_removal
-    # proj = tomopy.misc.corr.remove_outlier(proj, variableDict['zinger_level'], size=15, axis=0)
-    # flat = tomopy.misc.corr.remove_outlier(flat, variableDict['zinger_level']_w, size=15, axis=0)
+    # # zinger_removal
+    # # proj = tomopy.misc.corr.remove_outlier(proj, variableDict['zinger_level'], size=15, axis=0)
+    # # flat = tomopy.misc.corr.remove_outlier(flat, variableDict['zinger_level']_w, size=15, axis=0)
 
     # normalize
     data = tomopy.normalize(proj, flat, dark)
 
+
+    # if variableDict['missing']:
+
+    #     log_lib.warning("  *** missing")
+
+    #     miss_angles = [variableDict['start'], variableDict['end']]
+    #     data = patch_projection(data, miss_angles)
+    #     # Manage the missing angles:
+    #     # proj = np.concatenate((proj[0:miss_angles[0],:,:], proj[miss_angles[1]+1:-1,:,:]), axis=0)
+    #     # theta = np.concatenate((theta[0:miss_angles[0]], theta[miss_angles[1]+1:-1]))
+    #     # data[miss_angles[0]:miss_angles[1],:,:] = 0
+
+
     # remove stripes
     data = tomopy.remove_stripe_fw(data,level=7,wname='sym16',sigma=1,pad=True)
 
-    # data = tomopy.remove_stripe_ti(data, alpha=1.5)
+    # data = tomopy.remove_stripe_ti(data, variableDict['alpha']=1.5)
     # data = tomopy.remove_stripe_sf(data, size=150)
 
     # phase retrieval
@@ -184,6 +224,19 @@ def reconstruct(variableDict, sino):
     data = tomopy.remove_nan(data, val=0.0)
     data = tomopy.remove_neg(data, val=0.00)
     data[np.where(data == np.inf)] = 0.00
+
+    if variableDict['missing']:
+
+        log_lib.warning("  *** missing")
+
+        miss_angles = [variableDict['start'], variableDict['end']]
+        data = patch_projection(data, miss_angles)
+        # Manage the missing angles:
+        # proj = np.concatenate((proj[0:miss_angles[0],:,:], proj[miss_angles[1]+1:-1,:,:]), axis=0)
+        # theta = np.concatenate((theta[0:miss_angles[0]], theta[miss_angles[1]+1:-1]))
+        # data[miss_angles[0]:miss_angles[1],:,:] = 0
+
+    # slider(data.swapaxes(0,1), axis=0)
 
     rot_center = variableDict['rot_center'] / np.power(2, float(variableDict['binning']))
     log_lib.info("  *** rotation center: %f" % rot_center)
