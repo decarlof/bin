@@ -178,6 +178,7 @@ def reconstruct(variableDict, sino):
         theta = np.linspace(np.pi , (0+step_size), theta_size)    # zinger_removal
         log_lib.warning("  *** overwrite theta")
 
+    # old missing projection handling
     # if variableDict['missing']:
     #     miss_angles = [variableDict['start'], variableDict['end']]
         
@@ -213,6 +214,7 @@ def reconstruct(variableDict, sino):
     data = tomopy.remove_neg(data, val=0.00)
     data[np.where(data == np.inf)] = 0.00
 
+    # new missing projection handling
     if variableDict['missing']:
         log_lib.warning("  *** new missing")
         miss_angles = [variableDict['start'], variableDict['end']]
