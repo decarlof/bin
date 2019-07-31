@@ -195,18 +195,6 @@ def reconstruct(variableDict, sino):
     data = tomopy.normalize(proj, flat, dark)
 
 
-    # if variableDict['missing']:
-
-    #     log_lib.warning("  *** missing")
-
-    #     miss_angles = [variableDict['start'], variableDict['end']]
-    #     data = patch_projection(data, miss_angles)
-    #     # Manage the missing angles:
-    #     # proj = np.concatenate((proj[0:miss_angles[0],:,:], proj[miss_angles[1]+1:-1,:,:]), axis=0)
-    #     # theta = np.concatenate((theta[0:miss_angles[0]], theta[miss_angles[1]+1:-1]))
-    #     # data[miss_angles[0]:miss_angles[1],:,:] = 0
-
-
     # remove stripes
     data = tomopy.remove_stripe_fw(data,level=7,wname='sym16',sigma=1,pad=True)
 
@@ -226,17 +214,9 @@ def reconstruct(variableDict, sino):
     data[np.where(data == np.inf)] = 0.00
 
     if variableDict['missing']:
-
-        log_lib.warning("  *** missing")
-
+        log_lib.warning("  *** new missing")
         miss_angles = [variableDict['start'], variableDict['end']]
         data = patch_projection(data, miss_angles)
-        # Manage the missing angles:
-        # proj = np.concatenate((proj[0:miss_angles[0],:,:], proj[miss_angles[1]+1:-1,:,:]), axis=0)
-        # theta = np.concatenate((theta[0:miss_angles[0]], theta[miss_angles[1]+1:-1]))
-        # data[miss_angles[0]:miss_angles[1],:,:] = 0
-
-    # slider(data.swapaxes(0,1), axis=0)
 
     rot_center = variableDict['rot_center'] / np.power(2, float(variableDict['binning']))
     log_lib.info("  *** rotation center: %f" % rot_center)
