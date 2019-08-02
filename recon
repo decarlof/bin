@@ -246,10 +246,13 @@ def reconstruct(variableDict, sino):
     log_lib.info("  *** algorithm: %s" % variableDict['algorithm'])
     if variableDict['algorithm'] == 'astrasirt':
         extra_options ={'MinConstraint':0}
-        options = {'proj_type':'cuda', 'method':'SIRT_CUDA', 'num_iter':10, 'extra_options':extra_options}
-        rec = tomopy.recon(data, theta, center=rot_center, algorithm=tomopy.astra, options=options)
+        options = {'proj_type':'cuda', 'method':'SIRT_CUDA', 'num_iter':200, 'extra_options':extra_options}
+        shift = (int((data.shape[2]/2 - rot_center)+.5))
+        data = np.roll(data, shift, axis=2)
+        rec = tomopy.recon(data, theta, algorithm=tomopy.astra, options=options)
     else:        
         rec = tomopy.recon(data, theta, center=rot_center, algorithm=variableDict['algorithm'], filter_name=variableDict['filter'])
+
 
     rec = rec[:,N//4:5*N//4,N//4:5*N//4]
 
