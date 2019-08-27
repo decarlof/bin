@@ -200,6 +200,9 @@ def reconstruct(variableDict, sino):
     # proj = tomopy.misc.corr.remove_outlier(proj, variableDict['zinger_level'], size=15, axis=0)
     # flat = tomopy.misc.corr.remove_outlier(flat, variableDict['zinger_level_w'], size=15, axis=0)
 
+    # temporary for 2017-07 val Loon samples
+    dark *= 0
+
     # normalize
     data = tomopy.normalize(proj, flat, dark)
 
@@ -217,7 +220,7 @@ def reconstruct(variableDict, sino):
     log_lib.info("  *** raw data: %s" % variableDict['fname'])
 
     if (variableDict['phase'] == False):
-    	data = tomopy.minus_log(data)
+        data = tomopy.minus_log(data)
 
     data = tomopy.remove_nan(data, val=0.0)
     data = tomopy.remove_neg(data, val=0.00)
@@ -259,6 +262,8 @@ def reconstruct(variableDict, sino):
 
     # Mask each reconstructed slice with a circle.
     rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
+
+    # rec = -rec
     return rec
       
 
