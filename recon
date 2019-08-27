@@ -198,7 +198,7 @@ def reconstruct(variableDict, sino):
 
     # zinger_removal
     # proj = tomopy.misc.corr.remove_outlier(proj, variableDict['zinger_level'], size=15, axis=0)
-    # flat = tomopy.misc.corr.remove_outlier(flat, variableDict['zinger_level']_w, size=15, axis=0)
+    # flat = tomopy.misc.corr.remove_outlier(flat, variableDict['zinger_level_w'], size=15, axis=0)
 
     # normalize
     data = tomopy.normalize(proj, flat, dark)
@@ -265,7 +265,7 @@ def rec_full(variableDict):
     
     data_shape = get_dx_dims(variableDict['fname'], 'data')
 
-    nSino_per_chunk = 64  # always power of 2               # number of sinogram chunks to reconstruct
+    nSino_per_chunk = 32  # always power of 2               # number of sinogram chunks to reconstruct
                                                             # only one chunk at the time is reconstructed
                                                             # allowing for limited RAM machines to complete a full reconstruction
                                                             #
@@ -559,10 +559,10 @@ def main(arg):
     parser.add_argument("--start", nargs='?', type=int, default=0, help="Projection number of the first blocked view")
     parser.add_argument("--end", nargs='?', type=int, default=1, help="Projection number of the first blocked view")
     parser.add_argument("--phase",action="store_true", help="set to use phase retrieval; when selected also set the phase retrieval paramenters: sdd, dps, alpha and energy")
-    parser.add_argument("--alpha", nargs='?', type=restricted_float, default=1e-4, help="Phase retrieval paramenter: alpha: 1e-4 (default 1e-4)")
-    parser.add_argument("--sdd", nargs='?', type=restricted_float, default=10, help="Phase retrieval paramenter: Sample detector distance (mm): 10 (default 10)")
-    parser.add_argument("--dps", nargs='?', type=restricted_float, default=0.5, help="Phase retrieval paramenter: Detector pixel size (microns): 1.17 (default 1.17) (5x: 1.17, 2x: 2.93)")
-    parser.add_argument("--energy", nargs='?', type=restricted_float, default=0.5, help="Phase retrieval paramenter: X-ray energy (keV): 20 (default 20)")
+    parser.add_argument("--alpha", nargs='?', type=float, default=1e-4, help="Phase retrieval paramenter: alpha: 1e-4 (default 1e-4)")
+    parser.add_argument("--sdd", nargs='?', type=float, default=60, help="Phase retrieval paramenter: Sample detector distance (mm): 60 (default 60)")
+    parser.add_argument("--dps", nargs='?', type=float, default=1.17, help="Phase retrieval paramenter: Detector pixel size (microns): 1.17 (default 1.17) (5x: 1.17, 2x: 2.93)")
+    parser.add_argument("--energy", nargs='?', type=float, default=20, help="Phase retrieval paramenter: X-ray energy (keV): 20 (default 20)")
 
     args = parser.parse_args()
 
