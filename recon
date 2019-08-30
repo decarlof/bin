@@ -182,19 +182,16 @@ def reconstruct(variableDict, sino):
     if variableDict['missing']:
         miss_angles = [variableDict['start'], variableDict['end']]
         
-        # Manage the missing angles:
+        log_lib.warning("  *** old missing angle handling")
         proj = np.concatenate((proj[0:miss_angles[0],:,:], proj[miss_angles[1]+1:-1,:,:]), axis=0)
         theta = np.concatenate((theta[0:miss_angles[0]], theta[miss_angles[1]+1:-1]))
-        # proj = patch_projection(1.0*proj, miss_angles)
-        # proj[miss_angles[0]:miss_angles[1],:,:] = 0
 
-        # miss_angles = [0, 90] # 057-084
-        # # miss_angles = [0, 150] # 086
-        # # miss_angles = [0, 400] # 090
-        # # miss_angles = [0, 150] # 106, 107, 108, 109, 110
-        # # miss_angles = [0, 200] # 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 105
-        # proj = np.concatenate((proj[0:miss_angles[0],:,:], proj[miss_angles[1]+1:-1,:,:]), axis=0)
-        # theta = np.concatenate((theta[0:miss_angles[0]], theta[miss_angles[1]+1:-1]))
+    # new missing projection handling
+    # if variableDict['missing']:
+    #     log_lib.warning("  *** new missing angle handling")
+    #     miss_angles = [variableDict['start'], variableDict['end']]
+    #     data = patch_projection(data, miss_angles)
+
 
     # zinger_removal
     # proj = tomopy.misc.corr.remove_outlier(proj, variableDict['zinger_level'], size=15, axis=0)
@@ -225,12 +222,6 @@ def reconstruct(variableDict, sino):
     data = tomopy.remove_nan(data, val=0.0)
     data = tomopy.remove_neg(data, val=0.00)
     data[np.where(data == np.inf)] = 0.00
-
-    # new missing projection handling
-    # if variableDict['missing']:
-    #     log_lib.warning("  *** new missing")
-    #     miss_angles = [variableDict['start'], variableDict['end']]
-    #     data = patch_projection(data, miss_angles)
 
     rot_center = variableDict['rot_center'] / np.power(2, float(variableDict['binning']))
     log_lib.info("  *** rotation center: %f" % rot_center)
