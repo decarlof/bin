@@ -245,6 +245,12 @@ def reconstruct(variableDict, sino):
         shift = (int((data.shape[2]/2 - rot_center)+.5))
         data = np.roll(data, shift, axis=2)
         rec = tomopy.recon(data, theta, algorithm=tomopy.astra, options=options)
+    elif variableDict['algorithm'] == 'astracgls':
+        extra_options ={'MinConstraint':0}
+        options = {'proj_type':'cuda', 'method':'CGLS_CUDA', 'num_iter':15, 'extra_options':extra_options}
+        shift = (int((data.shape[2]/2 - rot_center)+.5))
+        data = np.roll(data, shift, axis=2)
+        rec = tomopy.recon(data, theta, algorithm=tomopy.astra, options=options)
     else:        
         rec = tomopy.recon(data, theta, center=rot_center, algorithm=variableDict['algorithm'], filter_name=variableDict['filter'])
 
@@ -544,7 +550,7 @@ def main(arg):
     parser.add_argument("fname", help="Directory containing multiple datasets or file name of a single dataset: /data/ or /data/sample.h5")
     parser.add_argument("--axis", nargs='?', type=str, default="0", help="Rotation axis location (pixel): 1024.0 (default 1/2 image horizontal size)")
     parser.add_argument("--bin", nargs='?', type=int, default=0, help="Reconstruction binning factor as power(2, choice) (default 0, no binning)")
-    parser.add_argument("--method", nargs='?', type=str, default="gridrec", help="Reconstruction algorithm: astrasirt, gridrec, sirtfbp (default gridrec)")
+    parser.add_argument("--method", nargs='?', type=str, default="gridrec", help="Reconstruction algorithm: astrasirt, astracgls, gridrec (default gridrec)")
     parser.add_argument("--filter", nargs='?', type=str, default="parzen", help="Reconstruction filter: none, shepp, cosine, hann, hamming, ramlak, parzen, butterworth (default parzen)")
     parser.add_argument("--type", nargs='?', type=str, default="slice", help="Reconstruction type: full, slice, try, phase (default slice). try/phase: multiple reconsctruction of the same slice with different (rotation axis)/(alpha coefficients)")
     parser.add_argument("--srs", nargs='?', type=int, default=10, help="+/- center search width (pixel): 10 (default 10). Search is in 0.5 pixel increments")
