@@ -182,23 +182,23 @@ def reconstruct(variableDict, sino):
     if variableDict['missing']:
         miss_angles = [variableDict['start'], variableDict['end']]
         
-        # Manage the missing angles:
+        log_lib.warning("  *** old missing angle handling")
         proj = np.concatenate((proj[0:miss_angles[0],:,:], proj[miss_angles[1]+1:-1,:,:]), axis=0)
         theta = np.concatenate((theta[0:miss_angles[0]], theta[miss_angles[1]+1:-1]))
-        # proj = patch_projection(1.0*proj, miss_angles)
-        # proj[miss_angles[0]:miss_angles[1],:,:] = 0
 
-        # miss_angles = [0, 90] # 057-084
-        # # miss_angles = [0, 150] # 086
-        # # miss_angles = [0, 400] # 090
-        # # miss_angles = [0, 150] # 106, 107, 108, 109, 110
-        # # miss_angles = [0, 200] # 91, 92, 93, 94, 95, 96, 97, 98, 99, 100, 101, 102, 103, 104, 105, 105
-        # proj = np.concatenate((proj[0:miss_angles[0],:,:], proj[miss_angles[1]+1:-1,:,:]), axis=0)
-        # theta = np.concatenate((theta[0:miss_angles[0]], theta[miss_angles[1]+1:-1]))
+    # new missing projection handling
+    # if variableDict['missing']:
+    #     log_lib.warning("  *** new missing angle handling")
+    #     miss_angles = [variableDict['start'], variableDict['end']]
+    #     data = patch_projection(data, miss_angles)
+
 
     # zinger_removal
     # proj = tomopy.misc.corr.remove_outlier(proj, variableDict['zinger_level'], size=15, axis=0)
     # flat = tomopy.misc.corr.remove_outlier(flat, variableDict['zinger_level_w'], size=15, axis=0)
+
+    # temporary for 2017-07 val Loon samples
+    dark *= 0
 
     # normalize
     data = tomopy.normalize(proj, flat, dark)
@@ -224,12 +224,6 @@ def reconstruct(variableDict, sino):
     data = tomopy.remove_neg(data, val=0.00)
     data[np.where(data == np.inf)] = 0.00
 
-    # new missing projection handling
-    # if variableDict['missing']:
-    #     log_lib.warning("  *** new missing")
-    #     miss_angles = [variableDict['start'], variableDict['end']]
-    #     data = patch_projection(data, miss_angles)
-
     rot_center = variableDict['rot_center'] / np.power(2, float(variableDict['binning']))
     log_lib.info("  *** rotation center: %f" % rot_center)
     data = tomopy.downsample(data, level=variableDict['binning']) 
@@ -252,6 +246,12 @@ def reconstruct(variableDict, sino):
         shift = (int((data.shape[2]/2 - rot_center)+.5))
         data = np.roll(data, shift, axis=2)
         rec = tomopy.recon(data, theta, algorithm=tomopy.astra, options=options)
+    elif variableDict['algorithm'] == 'astracgls':
+        extra_options ={'MinConstraint':0}
+        options = {'proj_type':'cuda', 'method':'CGLS_CUDA', 'num_iter':15, 'extra_options':extra_options}
+        shift = (int((data.shape[2]/2 - rot_center)+.5))
+        data = np.roll(data, shift, axis=2)
+        rec = tomopy.recon(data, theta, algorithm=tomopy.astra, options=options)
     else:        
         rec = tomopy.recon(data, theta, center=rot_center, algorithm=variableDict['algorithm'], filter_name=variableDict['filter'])
 
@@ -259,7 +259,7 @@ def reconstruct(variableDict, sino):
     rec = rec[:,N//4:5*N//4,N//4:5*N//4]
 
     # Mask each reconstructed slice with a circle.
-    #rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
+    rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
     return rec
       
 
@@ -549,7 +549,7 @@ def main(arg):
     parser.add_argument("fname", help="Directory containing multiple datasets or file name of a single dataset: /data/ or /data/sample.h5")
     parser.add_argument("--axis", nargs='?', type=str, default="0", help="Rotation axis location (pixel): 1024.0 (default 1/2 image horizontal size)")
     parser.add_argument("--bin", nargs='?', type=int, default=0, help="Reconstruction binning factor as power(2, choice) (default 0, no binning)")
-    parser.add_argument("--method", nargs='?', type=str, default="gridrec", help="Reconstruction algorithm: astrasirt, gridrec, sirtfbp (default gridrec)")
+    parser.add_argument("--method", nargs='?', type=str, default="gridrec", help="Reconstruction algorithm: astrasirt, astracgls, gridrec (default gridrec)")
     parser.add_argument("--filter", nargs='?', type=str, default="parzen", help="Reconstruction filter: none, shepp, cosine, hann, hamming, ramlak, parzen, butterworth (default parzen)")
     parser.add_argument("--type", nargs='?', type=str, default="slice", help="Reconstruction type: full, slice, try, phase (default slice). try/phase: multiple reconsctruction of the same slice with different (rotation axis)/(alpha coefficients)")
     parser.add_argument("--srs", nargs='?', type=int, default=10, help="+/- center search width (pixel): 10 (default 10). Search is in 0.5 pixel increments")
