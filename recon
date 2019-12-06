@@ -212,6 +212,11 @@ def reconstruct(variableDict, sino):
 
     # phase retrieval
     if (variableDict['phase']):
+        log_lib.info("  *** phase retrieval is ON")
+        log_lib.info("  *** *** pixel size: %s" % variableDict['detector_pixel_size_x'])
+        log_lib.info("  *** *** sample detector distance: %s" % variableDict['sample_detector_distance'])
+        log_lib.info("  *** *** energy: %s" % variableDict['monochromator_energy'])
+        log_lib.info("  *** *** alpha: %s" % variableDict['alpha'])
         data = tomopy.prep.phase.retrieve_phase(data,pixel_size=(variableDict['detector_pixel_size_x']*1e-4),dist=(variableDict['sample_detector_distance']/10.0),energy=variableDict['monochromator_energy'], alpha=variableDict['alpha'],pad=True)
 
     log_lib.info("  *** raw data: %s" % variableDict['fname'])
@@ -316,6 +321,9 @@ def rec_full(variableDict):
     rec_log_msg = "\n" + "recon --axis " + str(variableDict['rot_center']) + " --type full " + variableDict['fname']
     if (variableDict['binning'] > 0):
         rec_log_msg = rec_log_msg + " --bin " + str(variableDict['binning'])
+
+    if (variableDict['phase']):
+        rec_log_msg = rec_log_msg + " --phase" + " --sdd " + str(variableDict['sample_detector_distance']) + " --dps " + str(variableDict['detector_pixel_size_x']) + " --energy " + str(variableDict['monochromator_energy']) + " --alpha " + str(variableDict['alpha'])
 
     # log_lib.info('  *** command to repeat the reconstruction: %s' % rec_log_msg)
 
