@@ -116,6 +116,9 @@ def get_dx_dims(fname, dataset):
 
         shape = data.shape
 
+    if variableDict['flip']:
+        log_lib.info("   *** 360 deg flipped data")
+
     return shape
 
 
@@ -171,7 +174,10 @@ def reconstruct(variableDict, sino):
 
     # Read APS 32-BM raw data.
     proj, flat, dark, theta = dxchange.read_aps_32id(variableDict['fname'], sino=sino)
-        
+    
+    if variableDict['flip']:
+        log_lib.info("   *** 360 deg flipped data")
+    
     if variableDict['reverse']:
         step_size = (theta[1] - theta[0]) 
         theta_size = dxreader.read_dx_dims(variableDict['fname'], 'data')[0]
@@ -429,11 +435,12 @@ def rec_slice(variableDict):
     dxchange.write_tiff_stack(rec, fname=fname)
     log_lib.info("  *** rec: %s" % fname)
     log_lib.info("  *** slice: %d" % start)
-    
+
 
 def try_center(variableDict):
     
     data_shape = get_dx_dims(variableDict['fname'], 'data')
+
     log_lib.info(data_shape)
     ssino = int(data_shape[1] * variableDict['nsino'])
 
@@ -565,6 +572,7 @@ def main(arg):
     parser.add_argument("--reverse",action="store_true", help="set when the data set was collected in reverse (180-0)")
     parser.add_argument("--auto",action="store_true", help="set to use autocenter, when set --axis value is ignored")
     parser.add_argument("--plot",action="store_true", help="set to plot try result")
+    parser.add_argument("--flip",action="store_true", help="set when collecting 360 deg with rotation axis on the side to doble the field of view")
     parser.add_argument("--missing",action="store_true", help="set to enable missing angle option. Must set start/end flags")
     parser.add_argument("--start", nargs='?', type=int, default=0, help="Projection number of the first blocked view")
     parser.add_argument("--end", nargs='?', type=int, default=1, help="Projection number of the first blocked view")
@@ -588,6 +596,7 @@ def main(arg):
     variableDict['reverse'] = args.reverse
     variableDict['auto'] = args.auto
     variableDict['plot'] = args.plot
+    variableDict['flip'] = args.flip
     variableDict['missing'] = args.missing
     variableDict['start'] = args.start
     variableDict['end'] = args.end
