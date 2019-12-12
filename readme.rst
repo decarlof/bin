@@ -52,11 +52,11 @@ containing all the automatically calculated centers as a list::
 3. load the full series of reconstructed slices with ImageJ/File/Import/Image Sequence/ and select the all_hdf/slice_rec/ folder 
 inspect the images and adjust the shift in neede directly editing the shift in the rotation_axis.json file
 
-4. adjust the center if needed => rerun the 1 slice rec with::
+4. adjust the center if needed => rerun the 1 slice recon with::
 
     recon all_hdf/
 
-5. once all 1-slice rec look good run the full reconstruction for all data sets with::
+5. once all 1-slice recon look good run the full reconstruction for all data sets with::
 
     recon all_hdf/ --type full
 
@@ -66,7 +66,7 @@ How to use auto_rec
 
 auto_rec runs at the beamline during the experiment on the data analysis machine. Its task is to monitor a folder and executing for any newly transferred h5 file a try reconstruction by automatically running::
 
-    rec new_file.h5  --srs 30 --type try
+    recon new_file.h5  --srs 30 --type try
 
 
 Start monitoring
@@ -79,7 +79,7 @@ Start monitoring
 the program will start monitoring /local/data recursively and at each new h5 file send a message like::
 
     waiting for new file in /local/data/ to process
-    executing script: rec --type try --srs 30 /local/data/2019-06/004_test.h5
+    executing script: recon --type try --srs 30 /local/data/2019-06/004_test.h5
     Reconstructing a single file
     (1500, 2048, 2448)
     Raw data:  /local/data/2019-06/004_test.h5
