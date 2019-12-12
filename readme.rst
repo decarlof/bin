@@ -3,7 +3,7 @@ Installation
 
 Clone this repository in a folder that is in the PATH of your bash for example (export PATH="/local/usr32idc/bin:$PATH") then::
 
-    git clone https://github.com/decarlof/bin_utils.git /local/usr32idc/bin
+    git clone https://github.com/decarlof/bin_utils.git
 
 Dependency
 ----------
