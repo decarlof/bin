@@ -39,11 +39,11 @@ this generates in the all_hdf/ directory a file:
 
 - rotation_axis.json 
 
-containing all the automatically calculated centers
+containing all the automatically calculated centers as a list::
 
-- {"0": {"proj_0000.hdf": 1287.25}, "1": {"proj_0001.hdf": 1297.75},
-- {"2": {"proj_0002.hdf": 1287.25}, "3": {"proj_0003.hdf": 1297.75},
-- {"4": {"proj_0004.hdf": 1287.25}, "5": {"proj_0005.hdf": 1297.75}}
+    {"0": {"proj_0000.hdf": 1287.25}, "1": {"proj_0001.hdf": 1297.75},
+    {"2": {"proj_0002.hdf": 1287.25}, "3": {"proj_0003.hdf": 1297.75},
+    {"4": {"proj_0004.hdf": 1287.25}, "5": {"proj_0005.hdf": 1297.75}}
 
 2. perform a 1 slice reconstruction for all data sets with the automatically found center::
 
@@ -58,7 +58,7 @@ inspect the images and adjust the shift in neede directly editing the shift in t
 
 5. once all 1-slice rec look good run the full reconstruction for all data sets with::
 
-    rec all_hdf/ --type full
+    recon all_hdf/ --type full
 
 
 How to use auto_rec
@@ -73,6 +73,7 @@ Start monitoring
 ----------------
 
 ::
+
     auto_rec /local/data/
 
 the program will start monitoring /local/data recursively and at each new h5 file send a message like::
