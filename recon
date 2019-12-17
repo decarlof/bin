@@ -170,13 +170,38 @@ def patch_projection(data, miss_angles):
     slider(b.swapaxes(0,1), axis=0)
     return np.real(np.fft.ifft(fdatanew,axis=2))
 
+def flip_and_stitch(variableDict, img360, flat360, dark360):
+
+    center = int(variableDict['flip_rot_center'])
+    img = np.zeros([img360.shape[0]//2,img360.shape[1],2*img360.shape[2]-2*center],dtype=img360.dtype)
+    flat = np.zeros([flat360.shape[0],flat360.shape[1],2*flat360.shape[2]-2*center],dtype=img360.dtype)
+    dark = np.zeros([dark360.shape[0],dark360.shape[1],2*dark360.shape[2]-2*center],dtype=img360.dtype)
+    img[:,:,img360.shape[2]-2*center:] = img360[:img360.shape[0]//2,:,:]
+    img[:,:,:img360.shape[2]] = img360[img360.shape[0]//2:,:,::-1]
+    flat[:,:,flat360.shape[2]-2*center:] = flat360
+    flat[:,:,:flat360.shape[2]] = flat360[:,:,::-1]
+    dark[:,:,dark360.shape[2]-2*center:] = dark360
+    dark[:,:,:dark360.shape[2]] = dark360[:,:,::-1]
+    print(center)
+    # slider(img.swapaxes(0,1), np.arange(0, img.shape[1]))
+    #dxchange.write_tiff(flat.swapaxes(0,1), "/local/data/2019-12/Nikitin/tmp.tiff")
+    variableDict['rot_center'] = img.shape[2]//2
+    return img, flat, dark
+
+
+
 def reconstruct(variableDict, sino):
 
-    # Read APS 32-BM raw data.
-    proj, flat, dark, theta = dxchange.read_aps_32id(variableDict['fname'], sino=sino)
-    
     if variableDict['flip']:
         log_lib.info("   *** 360 deg flipped data")
+        proj360, flat360, dark360, theta360 = dxchange.read_aps_32id(variableDict['fname'], sino=sino)
+        proj, flat, dark = flip_and_stitch(variableDict, proj360, flat360, dark360)
+        #flat = flip_and_stitch(variableDict, flat360)
+        #dark = flip_and_stitch(variableDict, dark360)
+        theta = theta360[:len(theta360)//2] # take first half
+    else:
+        # Read APS 32-BM raw data.
+        proj, flat, dark, theta = dxchange.read_aps_32id(variableDict['fname'], sino=sino)
     
     if variableDict['reverse']:
         step_size = (theta[1] - theta[0]) 
@@ -200,11 +225,11 @@ def reconstruct(variableDict, sino):
 
 
     # zinger_removal
-    # proj = tomopy.misc.corr.remove_outlier(proj, variableDict['zinger_level'], size=15, axis=0)
-    # flat = tomopy.misc.corr.remove_outlier(flat, variableDict['zinger_level_w'], size=15, axis=0)
+    proj = tomopy.misc.corr.remove_outlier(proj, variableDict['zinger_level'], size=15, axis=0)
+    flat = tomopy.misc.corr.remove_outlier(flat, variableDict['zinger_level_w'], size=15, axis=0)
 
     # temporary for 2017-07 val Loon samples
-    dark *= 0
+    #dark *= 0
 
     # normalize
     data = tomopy.normalize(proj, flat, dark)
@@ -214,7 +239,7 @@ def reconstruct(variableDict, sino):
     data = tomopy.remove_stripe_fw(data,level=7,wname='sym16',sigma=1,pad=True)
 
     #data = tomopy.remove_stripe_ti(data, 1.5)
-    data = tomopy.remove_stripe_sf(data, size=150)
+    #data = tomopy.remove_stripe_sf(data, size=150)
 
     # phase retrieval
     if (variableDict['phase']):
@@ -239,7 +264,6 @@ def reconstruct(variableDict, sino):
     log_lib.info("  *** rotation center: %f" % rot_center)
     data = tomopy.downsample(data, level=variableDict['binning']) 
     data = tomopy.downsample(data, level=variableDict['binning'], axis=1)
-
     # padding 
     N = data.shape[2]
     data_pad = np.zeros([data.shape[0],data.shape[1],3*N//2],dtype = "float32")
@@ -270,7 +294,7 @@ def reconstruct(variableDict, sino):
     rec = rec[:,N//4:5*N//4,N//4:5*N//4]
 
     # Mask each reconstructed slice with a circle.
-    rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
+    #rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
     return rec
       
 
@@ -424,15 +448,15 @@ def rec_slice(variableDict):
 
     # Select sinogram range to reconstruct       
     start = ssino
-    end = start + 1
+    end = start + pow(2,variableDict['binning'])
     sino = (start, end)
 
     rec = reconstruct(variableDict, sino)
     if os.path.dirname(variableDict['fname']) is not '':
-        fname = variableDict['rec_dir'] + os.sep + 'slice_rec/' + 'recon_' + os.path.splitext(os.path.basename(variableDict['fname']))[0]
+       fname = variableDict['rec_dir'] + os.sep + 'slice_rec/recon_' + os.path.splitext(os.path.basename(variableDict['fname']))[0]
     else:
-        fname = './slice_rec/' + 'recon_' + os.path.splitext(os.path.basename(variableDict['fname']))[0]
-    dxchange.write_tiff_stack(rec, fname=fname)
+       fname = './slice_rec/recon_' + os.path.splitext(os.path.basename(variableDict['fname']))[0]
+    dxchange.write_tiff_stack(rec, fname=fname, overwrite=False)
     log_lib.info("  *** rec: %s" % fname)
     log_lib.info("  *** slice: %d" % start)
 
@@ -516,7 +540,7 @@ def try_center(variableDict):
     rec = rec[:,N//4:5*N//4,N//4:5*N//4]
  
     # Mask each reconstructed slice with a circle.
-    rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
+    #rec = tomopy.circ_mask(rec, axis=0, ratio=0.95)
 
     index = 0
     # Save images to a temporary folder.
@@ -562,7 +586,7 @@ def main(arg):
 
     parser = argparse.ArgumentParser()
     parser.add_argument("fname", help="Directory containing multiple datasets or file name of a single dataset: /data/ or /data/sample.h5")
-    parser.add_argument("--axis", nargs='?', type=str, default="0", help="Rotation axis location (pixel): 1024.0 (default 1/2 image horizontal size)")
+    parser.add_argument("--axis", nargs='?', type=str, default="-1", help="Rotation axis location (pixel): 1024.0 (default 1/2 image horizontal size)")
     parser.add_argument("--bin", nargs='?', type=int, default=0, help="Reconstruction binning factor as power(2, choice) (default 0, no binning)")
     parser.add_argument("--method", nargs='?', type=str, default="gridrec", help="Reconstruction algorithm: astrasirt, astracgls, gridrec (default gridrec)")
     parser.add_argument("--filter", nargs='?', type=str, default="parzen", help="Reconstruction filter: none, shepp, cosine, hann, hamming, ramlak, parzen, butterworth (default parzen)")
@@ -589,6 +613,8 @@ def main(arg):
     variableDict['algorithm'] = args.method
     variableDict['filter'] = args.filter
     variableDict['rot_center'] = float(args.axis)
+    variableDict['flip_rot_center'] = float(args.axis)
+
     variableDict['binning'] = int(args.bin)
     variableDict['nsino'] = float(args.nsino)
     variableDict['rec_type'] = args.type
@@ -625,7 +651,7 @@ def main(arg):
 
         log_lib.info("Reconstructing a single file")   
         # Set default rotation axis location
-        if variableDict['rot_center'] == 0:
+        if variableDict['rot_center'] == -1:
             if (variableDict['auto'] == True):
                 variableDict['rot_center'] = find_rotation_axis(variableDict)
             else:    
@@ -659,7 +685,7 @@ def main(arg):
                 variableDict['fname'] = fname
                 log_lib.info("Reconstructing %s" % fname)
                 # Set default rotation axis location
-                if variableDict['rot_center'] == 0:
+                if variableDict['rot_center'] == -1:
                     data_shape = get_dx_dims(variableDict['fname'], 'data')
                     variableDict['rot_center'] =  data_shape[2]/2
                 if variableDict['rec_type'] == "try":            
