@@ -182,9 +182,6 @@ def flip_and_stitch(variableDict, img360, flat360, dark360):
     flat[:,:,:flat360.shape[2]] = flat360[:,:,::-1]
     dark[:,:,dark360.shape[2]-2*center:] = dark360
     dark[:,:,:dark360.shape[2]] = dark360[:,:,::-1]
-    print(center)
-    # slider(img.swapaxes(0,1), np.arange(0, img.shape[1]))
-    #dxchange.write_tiff(flat.swapaxes(0,1), "/local/data/2019-12/Nikitin/tmp.tiff")
     variableDict['rot_center'] = img.shape[2]//2
     return img, flat, dark
 
@@ -196,8 +193,6 @@ def reconstruct(variableDict, sino):
         log_lib.info("   *** 360 deg flipped data")
         proj360, flat360, dark360, theta360 = dxchange.read_aps_32id(variableDict['fname'], sino=sino)
         proj, flat, dark = flip_and_stitch(variableDict, proj360, flat360, dark360)
-        #flat = flip_and_stitch(variableDict, flat360)
-        #dark = flip_and_stitch(variableDict, dark360)
         theta = theta360[:len(theta360)//2] # take first half
     else:
         # Read APS 32-BM raw data.
