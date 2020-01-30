@@ -39,7 +39,8 @@ def calc_blur_error(exposure_time, readout_time, camera_size_x, angular_range, n
     rot_speed = angular_range / scan_time
     frame_rate = number_of_proj / scan_time
     blur_delta = exposure_time * rot_speed
-    blur_pixel = (camera_size_x / 2.0) - ((camera_size_x / 2.0) * np.cos(blur_delta * np.pi /180.))
+    # blur_pixel = (camera_size_x / 2.0) - ((camera_size_x / 2.0) * np.cos(blur_delta * np.pi /180.))
+    blur_pixel = (camera_size_x / 2.0) * np.sin(blur_delta * np.pi /180.)
 
     #print("*************************************")
     #print("Total # of proj: ", number_of_proj)
@@ -54,7 +55,6 @@ def calc_blur_error(exposure_time, readout_time, camera_size_x, angular_range, n
     #print("Frame Rate: ", frame_rate, "fps")
     #print("Blur: ", blur_pixel, "pixels")
     #print("*************************************")
-    
     return blur_pixel, rot_speed, scan_time
 
 def set_acquisition(blur_pixel, exposure_time, readout_time, camera_size_x, angular_range, number_of_proj):
@@ -103,7 +103,7 @@ def set_acquisition(blur_pixel, exposure_time, readout_time, camera_size_x, angu
   
     return frame_rate, rot_speed
 
-if __name__ == '__main__':
+def plot2():
 
     exposure_time          = 0.1             # s
     readout_time           = 0.05            # s
@@ -135,10 +135,11 @@ if __name__ == '__main__':
     ax.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, ncol=2, mode="expand", borderaxespad=0.)
     plt.legend()
 
+    scan_time_str = "%4.2f" % (scan_time/60)
     label = 'exposure time = ' + str(exposure_time) + ' s' + '\nreadout time = ' + str(readout_time) + \
             ' s' + '\ncamera h size = ' + str(camera_size_x) + ' pixels' + '\nangular range = ' + \
-            str(angular_range) + ' deg' + '\nscan time = ' + str(scan_time/60) + ' min for ' + \
-            str(number_of_proj) + ' projections'
+            str(angular_range) + ' deg' + '\nscan time = ' + scan_time_str + ' min for ' + \
+            str(number_of_proj) + ' proj'
 
     ax.text(0.8, 0.5, label,
             verticalalignment='bottom', horizontalalignment='right',
@@ -157,6 +158,63 @@ if __name__ == '__main__':
     plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, ncol=2, mode="expand", borderaxespad=0.)
     plt.show()
 
+    
+if __name__ == '__main__':
+
+    exposure_time          = 0.1             # s
+    readout_time           = 0.05            # s
+    camera_size_x          = 2048            # pixel
+    angular_range          = 180.0           # deg
+    number_of_proj         = 1500
+
+    x = []    
+    y1 = []
+    y2 = []  
+    y3 = []  
+
+    for number_of_proj in range(100, number_of_proj, 100):
+        b_err, rot_speed, scan_time = calc_blur_error(exposure_time, readout_time, camera_size_x, angular_range, number_of_proj)
+        x.append(number_of_proj)
+        y1.append(b_err)
+        y2.append(rot_speed)
+    
+
+    fig = plt.figure()
+    fig.suptitle('Fly scan blur error', fontsize=14, fontweight='bold')
+    fig.subplots_adjust(top=0.85)
+
+    ax = fig.add_subplot(111)
+    ax.set_xlabel('number of projections')
+    ax.set_ylabel('Blur Error (pixels)', color='red')
+    ax.plot(x, y1, 'o', color='red', label="blur error")
+    ax.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, ncol=2, mode="expand", borderaxespad=0.)
+    plt.legend()
+
+    scan_time_str = "%4.2f" % (scan_time/60)
+    label = 'exposure time = ' + str(exposure_time) + ' s' + '\nreadout time = ' + str(readout_time) + \
+            ' s' + '\ncamera h size = ' + str(camera_size_x) + ' pixels' + '\nangular range = ' + \
+            str(angular_range) + ' deg' + '\nscan time = ' + scan_time_str + ' min for ' + \
+            str(number_of_proj) + ' proj'
+
+    ax.text(0.8, 0.5, label,
+            verticalalignment='bottom', horizontalalignment='right',
+            transform=ax.transAxes,
+            color='black', fontsize=15)
+
+
+
+    # ax1 = fig.add_subplot(111, sharex=ax, frameon=False)
+    # ax1.yaxis.tick_right()
+    # ax1.yaxis.set_label_position("right")
+    # ax1.set_ylabel('Rotation Speed (deg/s)', color='green')
+    # ax1.set_yscale("log")
+    # ax1.plot(x, y2, 'o', color='green', label="rotation speed")
+
+    # plt.legend(bbox_to_anchor=(0., 1.02, 1., .102), loc=3, ncol=2, mode="expand", borderaxespad=0.)
+    plt.show()
+
+    
+    
     
     
     
