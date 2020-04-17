@@ -1,5 +1,2 @@
 DIR=$1
-react.py $DIR -p '*.h5' 'tomopy recon --config /home/beams8/TOMO/tomopy_auto_rec.conf --hdf-file $f'
-##react.py $DIR -p '*.h5' 'recon --type try --srs 100 --axis 1224 $f'
-##react.py $DIR -p '*.h5' 'recon --type try --srs 200 $f'
-##react.py $DIR -p '*.h5' 'recon --auto $f'
+react.py $DIR -p '*.h5' 'tomopy recon --config /home/beams8/TOMO/bin/tomopy_auto_rec.conf --file-name $f'
