@@ -1,6 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.optimize import minimize
+
 from tomopy import recon, circ_mask
+import tomopy.util.dtype as dtype
+
 import h5py
 import dxchange
 import tomopy 
@@ -95,11 +99,8 @@ def find_center(
         tomo_ind, theta, mask, sinogram_order)
 
     # Magic is ready to happen...
-    res = minimize(
-        _find_center_cost, init,
-        args=(tomo_ind, theta, hmin, hmax, mask, ratio, sinogram_order),
-        method='Nelder-Mead',
-        tol=tol)
+    res = minimize(_find_center_cost, init, args=(tomo_ind, theta, hmin, hmax, mask, ratio, sinogram_order), method='Nelder-Mead', tol=tol)
+
     return res.x
 
 def _find_center_cost(
@@ -108,6 +109,8 @@ def _find_center_cost(
     """
     Cost function used for the ``find_center`` routine.
     """
+    center = np.array(center, dtype='float32')
+
     rec = recon(
         tomo_ind, theta, center,
         sinogram_order=sinogram_order,
@@ -124,6 +127,7 @@ def _find_center_cost(
     bval = -((rec - rec.mean())**2).sum()
 
     return val, bval
+    # return val
 
 def _adjust_hist_min(val):
     if val < 0:
@@ -192,6 +196,8 @@ def main():
         tomo_ind, theta, mask=True, sinogram_order=False)
 
     print(hmin, hmax)
+
+    print(find_center(tomo_ind, theta))
 
     centers = np.linspace(-25, 25, 101) + detector_center
     print(centers)
