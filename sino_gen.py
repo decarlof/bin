@@ -5,6 +5,7 @@ import h5py
 import dxchange
 import tomopy 
 import time
+import os
 
 def get_dx_dims(full_file_name):
     """
@@ -37,38 +38,45 @@ def get_dx_dims(full_file_name):
 
 def main():
 
-    # full_file_name = '/local/data/2020-02/Stock/099_B949_81_84_B2.h5'
-    data_top = '/local/data/'
-    # file_name = '099_B949_81_84_B2'
-    file_name = 'tomo_00001'
-    file_name_ext = '.h5'
-    full_file_name = data_top + file_name + file_name_ext
-    tic_01 =  time.time()
+    data_top = '/local/data/2020-02/Stock/'
+    file_name = '099_B949_81_84_B2'
+    # data_top = '/local/data/'
+    # file_name = 'tomo_00001'
+    top = '/local/data/2020-02/Stock/'
 
-    data_size = get_dx_dims(full_file_name)
+    # log.info(os.listdir(top))
+    h5_file_list = list(filter(lambda x: x.endswith(('.h5', '.hdf')), os.listdir(top)))
+    h5_file_list.sort()
 
-    print(data_size)
-    ssino = int(data_size[1] * 0.5)
-    detector_center = int(data_size[2] * 0.5)
+    print("Found: %s" % h5_file_list)
 
-    # Select sinogram range to reconstruct
-    sino_start = ssino
-    sino_end = sino_start + 10
+    for fname in h5_file_list:
 
-    sino = (int(sino_start), int(sino_end))
+        full_file_name = data_top + fname
+        data_size = get_dx_dims(full_file_name)
+
+        print(data_size)
+        ssino = int(data_size[1] * 0.5)
+        detector_center = int(data_size[2] * 0.5)
+
+        # Select sinogram range to reconstruct
+        sino_start = ssino
+        sino_end = sino_start + 10
+
+        sino = (int(sino_start), int(sino_end))
 
 
-    # Read APS 2-BM raw data
-    proj, flat, dark, theta = dxchange.read_aps_32id(full_file_name, sino=sino)
+        # Read APS 2-BM raw data
+        proj, flat, dark, theta = dxchange.read_aps_32id(full_file_name, sino=sino)
 
-    tomo_ind = tomopy.normalize(proj, flat, dark)
-
-    dxchange.write_tiff_stack(tomo_ind,fname=data_top+file_name+'_sino', axis=1)
+        tomo_ind = tomopy.normalize(proj, flat, dark)
+        print(os.path.splitext(full_file_name)[0]+'_sino')
+        dxchange.write_tiff_stack(tomo_ind,fname=os.path.splitext(full_file_name)[0]+'_sino', axis=1)
     
-    # rec = recon(tomo_ind, theta, center=detector_center, sinogram_order=False,
-    #             algorithm='gridrec', filter_name='None')
-    # rec = circ_mask(rec, axis=0)
-    # dxchange.write_tiff_stack(rec,fname=data_top+file_name+'_rec')
+        # rec = recon(tomo_ind, theta, center=detector_center, sinogram_order=False,
+        #             algorithm='gridrec', filter_name='None')
+        # rec = circ_mask(rec, axis=0)
+        # dxchange.write_tiff_stack(rec,fname=data_top+file_name+'_rec')
 
 if __name__ == "__main__":
     main()
