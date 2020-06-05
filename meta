@@ -21,7 +21,28 @@ import log
 import pathlib
 from datetime import datetime
 import numpy as np
+import pandas as pd
 
+
+def printTable(myDict, colList=None):
+    if not colList: 
+        colList = list(myDict[0].keys() if myDict else [])
+    myList = [colList] # 1st row = header
+    for item in myDict: 
+        myList.append([str(item[col] or '') for col in colList])
+    #maximun size of the col for each element
+    colSize = [max(map(len,col)) for col in zip(*myList)]
+    #insert seperating line before every line, and extra one for ending. 
+    for i in  range(0, len(myList)+1)[::-1]:
+         myList.insert(i, ['-' * i for i in colSize])
+    #two format for each content line and each seperating line
+    formatStr = ' | '.join(["{{:<{}}}".format(i) for i in colSize])
+    formatSep = '-+-'.join(["{{:<{}}}".format(i) for i in colSize])
+    for item in myList: 
+        if item[0][0] == '-':
+            print(formatSep.format(*item))
+        else:
+            print(formatStr.format(*item))
 
 def main(arg):
 
@@ -45,11 +66,39 @@ def main(arg):
     log.setup_custom_logger(lfname)
     log.info("Saving log at %s" % lfname)
 
+    list_to_extract = ('name', 'full_file_name', 'resolution', 'energy', 'sample_in_x', 'sample_in_y')
     if os.path.isfile(fname): 
-        meta = dxreader.read_dx_meta(fname)  
-        log.info(meta)
-    else:
-        log.info("File Name does not exist: ", fname)
+        meta = dxreader.read_dx_meta(fname) 
+        meta['full_file_name'][0] = os.path.basename(meta['full_file_name'][0])
+        sub_dict = {k:v for k, v in meta.items() if k in list_to_extract}
+        pd.options.display.max_rows = 999
+        df = pd.DataFrame.from_dict(sub_dict, orient='index', columns=('value', 'unit'))
+        log.info(df)
+
+    elif os.path.isdir(fname):
+        # Add a trailing slash if missing
+        top = os.path.join(fname, '')
+    
+        # Set the file name that will store the rotation axis positions.
+        h5_file_list = list(filter(lambda x: x.endswith(('.h5', '.hdf')), os.listdir(top)))
+        h5_file_list.sort()
+        big_dict = {}
+        i=0
+
+        for fname in h5_file_list:
+            h5fname = top + fname
+            meta = dxreader.read_dx_meta(h5fname) 
+            meta['full_file_name'][0] = os.path.basename(meta['full_file_name'][0])
+            sub_dict = {(('%3.3d' % i) +'_' + k):v for k, v in meta.items() if k in list_to_extract}
+            big_dict.update(sub_dict)
+            i+=1
+        pd.options.display.max_rows = 999
+        df = pd.DataFrame.from_dict(big_dict, orient='index', columns=('value', 'unit'))
+        print(df.to_markdown(tablefmt='grid'))
+
+
+    # else:
+    #     log.info("File Name does not exist: ", fname)
 
 if __name__ == "__main__":
     main(sys.argv[1:])
