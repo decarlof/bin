@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 """
@@ -8,7 +8,7 @@ Launch a script if specified files change.
 
 import os
 import os.path
-from pyinotify import WatchManager, IN_DELETE, IN_CREATE, IN_CLOSE_WRITE, ProcessEvent, Notifier
+from pyinotify import WatchManager, IN_DELETE, IN_CREATE, IN_CLOSE_WRITE, IN_MOVED_TO, ProcessEvent, Notifier
 import subprocess
 import sys
 import re
@@ -45,9 +45,24 @@ class Process(ProcessEvent):
     def process_IN_DELETE(self, event):
         raise Reload()
 
+    # used for catching mv hidden to normal file
+    def process_IN_MOVED_TO(self, event):
+        target = os.path.join(event.path, event.name)
+        if self.regex.match(target):
+            args = self.script.replace('$f', target).split()
+            #os.system("clear")
+            sys.stdout.write("executing script: " + " ".join(args) + "\n")
+            subprocess.call(args)
+            sys.stdout.write("------------------------\n")
+
     def process_IN_CLOSE_WRITE(self, event):
         target = os.path.join(event.path, event.name)
         if self.regex.match(target):
+            # Ignore all hidden '.*' files 
+            if len(event.name) > 0:
+                if event.name[0] == '.':
+                    sys.stdout.write("ignoring FDT temporary file:" + " " + event.name + "\n")
+                    return
             args = self.script.replace('$f', target).split()
             #os.system("clear")
             sys.stdout.write("executing script: " + " ".join(args) + "\n")
@@ -93,7 +108,7 @@ def main(args):
         process = Process(options)
 
         notifier = Notifier(wm, process)
-        mask = IN_DELETE | IN_CREATE | IN_CLOSE_WRITE
+        mask = IN_DELETE | IN_CREATE | IN_CLOSE_WRITE | IN_MOVED_TO 
         wdd = wm.add_watch(options.directory, mask, rec=True)
         try:
             while True:
